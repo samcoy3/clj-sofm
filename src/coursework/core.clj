@@ -1,4 +1,5 @@
 (ns coursework.core
+  (:require [clojure.data.json :as json])
   (:gen-class))
 
 (defn random-point
@@ -67,4 +68,4 @@
 (defn -main
   [& args]
   (let [m (generate-random-matrix 3)]
-    (println (update-matrix m 3 1000000))))
+    (println (json/write-str (update-matrix m 3 100000)))))
