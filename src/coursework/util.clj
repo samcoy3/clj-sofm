@@ -1,8 +1,9 @@
-(ns coursework.util
-  )
+(ns coursework.util)
+
+; This file contains a set of utility functions needed by more than one project module.
 
 (defn distance
-  "Returns the distance between <point1> and <point2>"
+  "Returns the distance between <point1> and <point2>, where both are 2-length vectors"
   [point1 point2]
   (Math/sqrt
     (+ 
