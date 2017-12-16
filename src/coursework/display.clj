@@ -42,9 +42,9 @@
     ))
 
 (def jframe ; defines the JFrame that will be used for the display
-  (frame :title "Hello"
-     :height 200
-     :width 200
+  (frame :title "Kohonen SOFM Training"
+     :height 400
+     :width 400
      :on-close :exit
      :content (canvas :id :canvas
                       :background "#DDDDDD"
