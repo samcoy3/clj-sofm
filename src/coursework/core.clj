@@ -23,13 +23,19 @@
   [size]
   (mapv (fn[x](random-point)) (range (* size size))))
 
+; CONVERGENCE
+; These are the functions used to measure convergence
+(def convergence-measures {:centre-point (fn [mat]
+                                  (let [centre (get mat (/ (- (count mat) 1) 2))]
+                                    (util/distance centre [0.5 0.5])))
+               })
+
 ; HEURISTICS
 ; These are the functions used to modiffy the rate of convergence to the selected points over time.
-(defn lambdas 
-  "For a given <iter>, returns a 2-length vector containing lambda and gamma"
-  [iter]
-  (let [l (/ 1 (+ 1 (Math/log10 iter)))]
-    [l (/ l 2)]))
+(def lambda-schedules {:given (fn [iter]
+                          (let [l (/ 1 (+ 1 (Math/log10 iter)))]
+                            [l (/ l 2)]))
+              })
 
 ; UTIL
 (defn adjust-point
@@ -40,8 +46,8 @@
 
 ; MAIN LOOP
 (defn update-matrix
-  "Updates the <matrix> of size <size> of random points <iterations> number of times"
-  [matrix size iterations]
+  "Updates the <matrix> of size <size> of random points <iterations> number of times. Uses <lambdas> as the annealing schedule, and uses <convergence> to measure convergence of the sofm."
+  [matrix size iterations lambdas convergence]
   (loop [iter iterations mat matrix]
     (let [point (random-point)
           nearest (util/nearest-index mat point)
@@ -62,4 +68,4 @@
   [& args]
   (display/init) ; initialise the display module
   (let [m (generate-random-matrix netsize)] ; generate an initial matrix
-    (println (json/write-str (update-matrix m netsize iters))))) ; run the simulation
+    (println (json/write-str (update-matrix m netsize iters (:given lambda-schedules) (:centre-point convergence-measures)))))) ; run the simulation
