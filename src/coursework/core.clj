@@ -10,6 +10,8 @@
 (def iters 1000000) ; the number of iterations the sofm should perform
 (def ms-per-update 2) ; the number of miliseconds that the sofm should delay by between each iteration (useful for making the animation easier to see)
 
+(def matrix (atom [])) ; the threadsafe matrix to be used by the update function
+
 ; GENERATION
 (defn random-point
   "Generates a random point in (0,1]^2"
@@ -25,14 +27,14 @@
 
 ; CONVERGENCE
 ; These are the functions used to measure convergence
-(def convergence-measures {:centre-point (fn [mat]
+(def convergence-measures {"centre-point" (fn [mat]
                                   (let [centre (get mat (/ (- (count mat) 1) 2))]
                                     (util/distance centre [0.5 0.5])))
                })
 
 ; HEURISTICS
 ; These are the functions used to modiffy the rate of convergence to the selected points over time.
-(def lambda-schedules {:given (fn [iter]
+(def lambda-schedules {"given" (fn [iter]
                           (let [l (/ 1 (+ 1 (Math/log10 iter)))]
                             [l (/ l 2)]))
               })
@@ -46,26 +48,36 @@
 
 ; MAIN LOOP
 (defn update-matrix
-  "Updates the <matrix> of size <size> of random points <iterations> number of times. Uses <lambdas> as the annealing schedule, and uses <convergence> to measure convergence of the sofm."
-  [matrix size iterations lambdas convergence]
-  (loop [iter iterations mat matrix]
+  "Updates the <matrix> of size <size> of random points <iterations> number of times. Uses <lambdas> as the annealing schedule, and uses <convergence> to measure convergence of the sofm. Returns the list of convergence values at each iteration."
+  [size iterations lambdas convergence]
+  (loop [iter iterations convergence-values ()]
     (let [point (random-point)
+          mat @matrix
           nearest (util/nearest-index mat point)
           [lambda gamma] (lambdas (- iterations iter -1))]
       (display/update-sofm mat point) ; updates the information that the display module has
       (Thread/sleep ms-per-update) ; sleeps temporarily, useful for the animation
       (if (= iter 0)
-        mat ; if this is the final iteration return the matrix itself
+        convergence-values ; if this is the final iteration return the list of convergence values
         (recur (dec iter) ; otherwise iterate, decrementing the iterations, and passing a modified matrix into the loop
-               (replace
-                   (conj
-                    (hash-map (nth mat nearest) (adjust-point (nth mat nearest) lambda point))
-                    (zipmap (map #(nth mat %) (util/neighbours size nearest))
-                           (map #(adjust-point (nth mat %) gamma point) (util/neighbours size nearest))))
-                   mat))))))
+               (do ; first update the matrix, then work out the convergence of the new matrix
+                 (let [replacements (conj
+                                      (hash-map (nth mat nearest) (adjust-point (nth mat nearest) lambda point))
+                                      (zipmap (map #(nth mat %) (util/neighbours size nearest))
+                                             (map #(adjust-point (nth mat %) gamma point) (util/neighbours size nearest))))]
+                 (swap! matrix (partial replace replacements)))
+                 (cons (convergence @matrix) convergence-values)
+                 ))))))
 
 (defn -main
-  [& args]
+  ([]
+   (-main :error))
+  ([single-arg]
+   (case single-arg
+     ("help" "-help" "--help") (println "This program takes three mandatory arguments: size of the SOFM, number of SOFMs to train, and the number of iterations to be performed on each SOFM.\nFor example, '3 10 1000' as an argument list would train 10 3x3 SOFMs for 1000 iterations each.\nFor more information please consult the README.")
+     :error (println "The program was run incorrectly. Please consult the README or run the program with the 'help' flag"))
+  (System/exit 0))
+  ([size quant iters & args]
   (display/init) ; initialise the display module
-  (let [m (generate-random-matrix netsize)] ; generate an initial matrix
-    (println (json/write-str (update-matrix m netsize iters (:given lambda-schedules) (:centre-point convergence-measures)))))) ; run the simulation
+  (reset! matrix (generate-random-matrix netsize)) ; resets the matrix atom to a random matrix
+  (println (update-matrix netsize iters (get lambda-schedules "given") (get convergence-measures "centre-point")))))
