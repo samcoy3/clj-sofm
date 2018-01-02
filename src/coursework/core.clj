@@ -6,9 +6,7 @@
 
 ; This is the project core. The main function target is -main.
 
-(def netsize 7) ; the size of the sofm
-(def iters 1000000) ; the number of iterations the sofm should perform
-(def ms-per-update 2) ; the number of miliseconds that the sofm should delay by between each iteration (useful for making the animation easier to see)
+(def ms-per-update 0) ; the number of miliseconds that the sofm should delay by between each iteration (useful for making the animation easier to see)
 
 (def matrix (atom [])) ; the threadsafe matrix to be used by the update function
 
@@ -71,13 +69,20 @@
 
 (defn -main
   ([]
-   (-main :error))
+    (-main :generic-error))
   ([single-arg]
-   (case single-arg
-     ("help" "-help" "--help") (println "This program takes three mandatory arguments: size of the SOFM, number of SOFMs to train, and the number of iterations to be performed on each SOFM.\nFor example, '3 10 1000' as an argument list would train 10 3x3 SOFMs for 1000 iterations each.\nFor more information please consult the README.")
-     :error (println "The program was run incorrectly. Please consult the README or run the program with the 'help' flag"))
-  (System/exit 0))
-  ([size quant iters & args]
-  (display/init) ; initialise the display module
-  (reset! matrix (generate-random-matrix netsize)) ; resets the matrix atom to a random matrix
-  (println (update-matrix netsize iters (get lambda-schedules "given") (get convergence-measures "centre-point")))))
+    (case single-arg
+      ("help" "-help" "--help") (println "This program takes three mandatory arguments: size of the SOFM, number of SOFMs to train, and the number of iterations to be performed on each SOFM.\nFor example, '3 10 1000' as an argument list would train 10 3x3 SOFMs for 1000 iterations each.\nFor more information please consult the README.")
+      :generic-error (println "The program was run incorrectly. Please consult the README or run the program with the 'help' flag"))
+    (System/exit 0))
+  ([size quant iters]
+    (-main size quant iters "given" "centre-point"))
+  ([size quant iters lambda-schedule convergence-measure]
+    (display/init) ; initialise the display module
+    (reset! matrix (generate-random-matrix (read-string size))) ; resets the matrix atom to a random matrix
+    (loop [sofm-number (read-string quant) converge-values ()]
+      (let [next-converge-values (update-matrix (read-string size) (read-string iters) (get lambda-schedules lambda-schedule) (get convergence-measures convergence-measure))
+        new-converge-values (if (= () converge-values) next-converge-values (map + next-converge-values converge-values))]
+      (if (= sofm-number 0)
+        (println new-converge-values)
+        (recur (dec sofm-number) new-converge-values))))))
