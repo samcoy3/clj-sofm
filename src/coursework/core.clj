@@ -2,13 +2,14 @@
   (:require [clojure.data.json :as json])
   (:require [coursework.display :as display])
   (:require [coursework.util :as util])
+  (:use (incanter core charts stats))
   (:gen-class))
 
 ; This is the project core. The main function target is -main.
 
 (def ms-per-update 0) ; the number of miliseconds that the sofm should delay by between each iteration (useful for making the animation easier to see)
 
-(def matrix (atom [])) ; the threadsafe matrix to be used by the update function
+(def sofm-matrix (atom [])) ; the threadsafe matrix to be used by the update function
 
 ; GENERATION
 (defn random-point
@@ -50,7 +51,7 @@
   [size iterations lambdas convergence]
   (loop [iter iterations convergence-values ()]
     (let [point (random-point)
-          mat @matrix
+          mat @sofm-matrix
           nearest (util/nearest-index mat point)
           [lambda gamma] (lambdas (- iterations iter -1))]
       (display/update-sofm mat point) ; updates the information that the display module has
@@ -63,8 +64,8 @@
                                       (hash-map (nth mat nearest) (adjust-point (nth mat nearest) lambda point))
                                       (zipmap (map #(nth mat %) (util/neighbours size nearest))
                                              (map #(adjust-point (nth mat %) gamma point) (util/neighbours size nearest))))]
-                 (swap! matrix (partial replace replacements)))
-                 (cons (convergence @matrix) convergence-values)
+                 (swap! sofm-matrix (partial replace replacements)))
+                 (cons (convergence @sofm-matrix) convergence-values)
                  ))))))
 
 (defn -main
@@ -79,10 +80,10 @@
     (-main size quant iters "given" "centre-point"))
   ([size quant iters lambda-schedule convergence-measure]
     (display/init) ; initialise the display module
-    (reset! matrix (generate-random-matrix (read-string size))) ; resets the matrix atom to a random matrix
+    (reset! sofm-matrix (generate-random-matrix (read-string size))) ; resets the matrix atom to a random matrix
     (loop [sofm-number (read-string quant) converge-values ()]
       (let [next-converge-values (update-matrix (read-string size) (read-string iters) (get lambda-schedules lambda-schedule) (get convergence-measures convergence-measure))
-        new-converge-values (if (= () converge-values) next-converge-values (map + next-converge-values converge-values))]
+        new-converge-values (if (empty? converge-values) next-converge-values (map + next-converge-values converge-values))]
       (if (= sofm-number 0)
-        (println new-converge-values)
+        (view (trace-plot (reverse new-converge-values)))
         (recur (dec sofm-number) new-converge-values))))))
