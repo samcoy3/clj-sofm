@@ -1,6 +1,6 @@
-(defproject coursework "0.1.0-SNAPSHOT"
-  :description "FIXME: write description"
-  :url "http://example.com/FIXME"
+(defproject coursework "1.0.0"
+  :description "A SOFM trainer written in Clojure."
+  :url "http://github.com/samcoy3/clj-sofm"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.8.0"]
