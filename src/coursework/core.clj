@@ -86,10 +86,30 @@
   (if (:visuals options) (display/init)) ; initialise the real time display if we want to
   (reset! sofm-matrix (generate-random-matrix (:size options))) ; initialise the matrix to a random SOFM of size provided in the options
   (loop [sofm-number (:quant options) converge-values []]
-    (let [new-converge-values (conj converge-values (update-matrix (:size options) (:iters options) (partial ((:lambda-type options) lambda-schedules) (:lambda-modifier options)) (:centre-point convergence-measures)))]
+    (let [new-converge-values (conj converge-values (update-matrix (:size options) (:iters options) (partial ((:lambda-type options :default) lambda-schedules) (:lambda-modifier options 10)) (:centre-point convergence-measures)))]
       (if (= sofm-number 0)
         (if (:repl-mode options)
           (reverse (apply map + new-converge-values)) ; if repl-mode is on simply return the data
           (view (line-chart (range (:quant options)) (reverse (apply map + new-converge-values))))) ; view the chart
         (recur (dec sofm-number) new-converge-values))))
   )
+
+(defn -main
+  "Entry point for the program. Parses command-line arguments into an options map and calls run."
+  [size quant iters & args]
+  (let [options (assoc {} :size (read-string size)
+                          :quant (read-string quant)
+                          :iters (read-string iters))
+        vec_args (apply vector args)]
+    (loop [opts options vec_opts vec_args]
+      (case (first vec_opts)
+        ("--schedule" "-schedule" "schedule") (recur (assoc opts :lambda-type (case (second vec_opts)
+                                                                                 "var-base" :variable-base
+                                                                                 "var-rat" :variable-ratio
+                                                                                 "log-rat" :log-ratio
+                                                                                 :default)
+                                                                 :lambda-modifier (read-string (get vec_opts 2)))
+                                                     (apply vector (drop 3 vec_opts)))
+        ("--visuals" "-visuals" "visuals") (recur (assoc opts :visuals true) (apply vector (rest vec_opts)))
+        ("--repl-mode" "-repl-mode" "repl-mode") (recur (assoc opts :repl-mode true) (apply vector (rest vec_opts)))
+        nil (run opts)))))
