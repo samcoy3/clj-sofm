@@ -90,7 +90,8 @@
       (if (= sofm-number 0)
         (if (:repl-mode options)
           (reverse (apply map + new-converge-values)) ; if repl-mode is on simply return the data
-          (view (line-chart (range (:quant options)) (reverse (apply map + new-converge-values))))) ; view the chart
+          (let [x-vals (reverse (apply map + new-converge-values))]
+            (view (xy-plot (range (count x-vals)) x-vals :title "Convergence at each iteration" :x-label "Iteration" :y-label "Convergence")))) ; view the chart
         (recur (dec sofm-number) new-converge-values))))
   )
 
