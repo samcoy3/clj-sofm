@@ -33,13 +33,21 @@
 
 ; HEURISTICS
 ; These are the functions used to modiffy the rate of convergence to the selected points over time.
-(def lambda-schedules {:variable-base (fn [modifier iter]
+(def lambda-schedules {:default (fn [modifier iter] ; modifier does nothing in this case, it's required to maintain the format however
+                          (let [l (/ 1 (+ 1 (Math/log10 iter)))]
+                            [l (/ l 2)]))
+                       
+                       :variable-base (fn [modifier iter] ; variable base of the log used for lambda
                           (let [l (/ 1 (+ 1 (/ (Math/log iter) (Math/log modifier))))]
                             [l (/ l 2)]))
               
-                       :variable-ratio (fn [modifier iter]
+                       :variable-ratio (fn [modifier iter] ; variable ratio between lambda and gamma
                            (let [l (/ 1 (+ 1 (Math/log10 iter)))]
                              [l (* l modifier)]))
+                       
+                       :log-ratio (fn [modifier iter] ; logarthmic ratio between lambda and gamma
+                           (let [l (/ 1 (+ 1 (Math/log10 iter)))]
+                             [l (/ l (+ 2 (/ (Math/log iter) (Math/log modifier))))]))
                        })
 
 ; UTIL
